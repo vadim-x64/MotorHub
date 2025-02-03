@@ -16,13 +16,20 @@ db_pool = None
 
 @dp.message(Command("start"))
 async def cmd_start(message: Message):
-    user_name = message.from_user.first_name or "Друже"
+    user_name = message.from_user.full_name
+    user_id = message.from_user.id
+    logging.info(f"Користувач {user_name} (ID: {user_id}) виконав команду /start")
+
+    user_display_name = message.from_user.first_name or "Друже"
     messages = load_messages()
-    start_message = messages["start_message"].format(name=user_name)
+    start_message = messages["start_message"].format(name=user_display_name)
     await message.answer(start_message)
 
 @dp.message(Command("categories"))
 async def categories_handler(message: Message):
+    user_name = message.from_user.full_name
+    user_id = message.from_user.id
+    logging.info(f"Користувач {user_name} (ID: {user_id}) виконав команду /categories")
     await show_categories(message, db_pool)
 
 @dp.callback_query(lambda c: c.data.startswith("category_"))

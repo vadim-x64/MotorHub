@@ -1,4 +1,4 @@
-import asyncio
+import logging
 from aiogram import Bot, types
 from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
 from database import get_categories, get_cars_by_category, get_car_images
@@ -15,6 +15,9 @@ async def show_categories(message: Message, pool):
     await message.answer(get_message("categories_message"), reply_markup=keyboard)
 
 async def show_cars(callback: types.CallbackQuery, pool, bot: Bot):
+    user_name = callback.from_user.full_name
+    user_id = callback.from_user.id
+    logging.info(f"Користувач {user_name} (ID: {user_id}) натиснув кнопку {callback.data}")
     parts = callback.data.split('_')
     category_id = int(parts[1])
     car_index = int(parts[2]) if len(parts) > 2 else 0
@@ -22,15 +25,11 @@ async def show_cars(callback: types.CallbackQuery, pool, bot: Bot):
     cars = await get_cars_by_category(pool, category_id)
 
     if not cars:
-        no_cars_msg = await callback.message.edit_text("Вибачте, наразі ця категорія порожня 😕")
-        await asyncio.sleep(3)
-        await bot.delete_message(callback.message.chat.id, no_cars_msg.message_id)
-        await show_categories(callback.message, pool)
+        await callback.answer("Наразі ця категорія порожня 😕", show_alert=True)
         return
 
     current_car = cars[car_index]
     images = await get_car_images(pool, current_car["id"])
-
     buttons = []
 
     if images:
@@ -66,7 +65,7 @@ async def show_cars(callback: types.CallbackQuery, pool, bot: Bot):
 
     buttons.append(car_buttons)
     keyboard = InlineKeyboardMarkup(inline_keyboard=buttons)
-    caption = f"{current_car['name']}\n{current_car['description']}\n\nАвто {car_index + 1} з {len(cars)}"
+    caption = f"{current_car['name']}\n\n{current_car['description']}\n\nАвто {car_index + 1} з {len(cars)}"
 
     if images:
         media = types.InputMediaPhoto(
